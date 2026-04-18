@@ -15,8 +15,9 @@ enum input_status
 {
     INVALID_LINE_FORMAT,
     INVALID_DATE_FORMAT,
-    INVALID_VALUE_FORMAT,
-    VALID_LINE
+    VALID_LINE,
+    NOT_POSITIVE_VALUE,
+    VALUE_TOO_LARGE
 };
 class BitcoinExchange
 {
