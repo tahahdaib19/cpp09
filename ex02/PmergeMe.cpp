@@ -42,13 +42,55 @@ void SortPairs(container &my_container)
     }
 }
 
+std::vector<size_t> generateJacobIndices(size_t n)
+{
+    std::vector<size_t> result;
+    if (n == 0)
+        return result;
+
+    std::vector<size_t> jacob;
+    jacob.push_back(1);
+    jacob.push_back(3);
+
+    while (jacob.back() < n)
+        jacob.push_back(jacob[jacob.size() - 1] + 2 * jacob[jacob.size() - 2]);
+
+    size_t prev = 1;
+
+    for (size_t i = 0; i < jacob.size(); i++)
+    {
+        size_t curr = jacob[i];
+        if (curr > n)
+            curr = n;
+
+        for (size_t j = curr; j > prev; j--)
+            result.push_back(j - 1);
+
+        prev = curr;
+        if (curr == n)
+            break;
+    }
+
+    return result;
+}
+
 template <typename container>
-void beginSort(container &my_container)
+container beginSort(container &my_container)
 {
    container larger_half;
    container smaller_half;
+   int lastElement = 0;
+    bool hasLastElement = false;
    typename container::iterator first = my_container.begin();
    typename container::iterator second ;
+   if (my_container.size() < 2)
+        return my_container;
+    if (my_container.size() % 2 != 0) 																				// If there's an odd element, save it to add back later
+    {
+        lastElement = my_container.back();
+        hasLastElement = true;
+        my_container.pop_back();
+    }
     while (first != my_container.end())
     {
         second = first;
@@ -69,22 +111,26 @@ void beginSort(container &my_container)
             larger_half.push_back(*second);
             smaller_half.push_back(*first);
         }
-         if (second == my_container.end())
-            break;
-        if (my_container.size() % 2 != 0 && second == my_container.end() - 1)
-        {
-            larger_half.push_back(*second);
-                break;
-        }
         first = second;
         ++first;
        
     }
-    SortPairs(larger_half);
-    std::cout<<"After sorting pairs : ";
-    for (typename container::iterator it = larger_half.begin(); it != larger_half.end(); ++it)
-    {        std::cout<<*it<<" ";
-    }    std::cout<<std::endl;
+   container newMainChain = beginSort(larger_half);
+	container newPendingChain;
+	for(size_t i = 0; i < newMainChain.size(); i++) 															// Reconstruct pending chain based on the order of the new main chain (to maintain the correct pairs)
+	{
+		size_t oldindex = std::find(larger_half.begin(), larger_half.end(), newMainChain[i]) - larger_half.begin();
+		newPendingChain.push_back(smaller_half[oldindex]);
+	}
+	if (hasLastElement)
+		newPendingChain.push_back(lastElement); 																// If there was an odd element, add it to the pending chain
+			
+	std::vector<int> finalMainChain = newMainChain; 															// Start with the new main chain as the base for the final sorted chain
+	finalMainChain.insert(finalMainChain.begin(), newPendingChain.front()); 	
+
+  
+    return finalMainChain;
+
 
 }
 
@@ -95,8 +141,14 @@ void PmergeMe::ApplyFordJohnson(std::string input)
    
     FillContainer(vec, input);
     FillContainer(deq, input);
-    beginSort(vec);
-    beginSort(deq);
+   vec = beginSort(vec);
+   std::cout << "Sorted vector: ";
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+        std::cout << vec[i] << " ";
+    }
+    std::cout << std::endl;
+    //deq = beginSort(deq);
 
 
 }
