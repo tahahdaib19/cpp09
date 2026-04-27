@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iterator>
 #include <iomanip>
+#include <sys/time.h>
 
 class PmergeMe
 {

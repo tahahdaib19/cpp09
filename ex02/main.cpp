@@ -4,12 +4,18 @@
 
 int main (int ac ,char **av)
 {
-    if (ac != 2)
+    // if (ac != 2)
+    // {
+    //     std::cerr<<"invalid input"<<std::endl;
+    //     return 1 ;
+    // }
+    std::string input;
+    for (int i = 1; i < ac; i++)
     {
-        std::cerr<<"invalid input"<<std::endl;
-        return 1 ;
+        input += av[i];
+        input += " ";
     }
-    PmergeMe::ApplyFordJohnson(av[1]);
+    PmergeMe::ApplyFordJohnson(input);
     return 0;
 
 }
