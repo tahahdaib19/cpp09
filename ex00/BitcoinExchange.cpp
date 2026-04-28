@@ -20,27 +20,6 @@ BitcoinExchange::~BitcoinExchange(void)
 {
 }
 
-bool is_valid_line_format(const std::string &line)
-{
-     std::stringstream line_stream;
-     line_stream.str("");
-     line_stream << line;
-     std::string token;
-     int token_count = 0;
-     while (line_stream >> token)
-        token_count++;
-     if (token_count != 3)
-        return false;
-     
-    unsigned int pipe_pos = line_stream.str().find('|');
-    
-    if (pipe_pos == std::string::npos || pipe_pos == 0 || pipe_pos == line.length() - 1)
-        return false;
-    return true;
-    
-}
-
-
 std::string trim(const std::string& s)
 {
     size_t start = 0;
@@ -54,6 +33,8 @@ std::string trim(const std::string& s)
 
     return s.substr(start, end - start);
 }
+
+
 
 void status_message(input_status status, const std::string &line)
 {
@@ -69,7 +50,7 @@ void status_message(input_status status, const std::string &line)
             std::cout<<"Error: valid line"<<std::endl;
             break;
         case NOT_POSITIVE_VALUE:
-            std::cout<<"Error: not a positive number"<<std::endl;
+             std::cout<<"Error: not a positive number"<<std::endl;
             break;
         case VALUE_TOO_LARGE:
             std::cout<<"Error: too large number"<<std::endl;
@@ -84,7 +65,7 @@ bool isLeapYear(int year)
     if (year % 100 == 0)
         return false;
     if (year % 4 == 0)
-        return true;
+    return true;
     return false;
 }
 
@@ -116,7 +97,7 @@ input_status is_valid_date(const std::string &date_str)
     year = static_cast<int>(std::strtod(year_str.c_str(), NULL));
     month = static_cast<int>(std::strtod(month_str.c_str(), NULL));
     day = static_cast<int>(std::strtod(day_str.c_str(), NULL));   
-
+    
     if (month < 1 || month > 12 || day < 1 || day > 31 || year < 0)
         return INVALID_DATE_FORMAT;
 
@@ -126,8 +107,8 @@ input_status is_valid_date(const std::string &date_str)
         days_in_month[1] = 29;
 
     if (day > days_in_month[month - 1])
-        return INVALID_DATE_FORMAT;
-
+    return INVALID_DATE_FORMAT;
+    
     return VALID_LINE;
     
 }
@@ -157,65 +138,108 @@ std::map<std::string, float> load_exchange_rates(const std::string &filename)
     file.close();
     return exchange_rates;
 }
-
-
-input_status line_validation(std::string line)
+input_status is_valid_line_format(const std::string &line,bool is_header = false ,std::string value_str = "" ,std::string date_str = "", unsigned int pipe_pos = 0)
 {
-    std::map<std::string, float> exchange_rates;
-    exchange_rates = load_exchange_rates("data.csv");
+        //unsigned int pipe_pos = line.find('|');
+    if (pipe_pos == std::string::npos || pipe_pos == 0 || pipe_pos == line.length() - 1)
+        return INVALID_LINE_FORMAT;
+    
+    if (is_header)
+    {
+       if (value_str != "value" || date_str != "date")
+            return INVALID_LINE_FORMAT;
+        else
+            return VALID_LINE;
+    }
+    {
+        std::stringstream line_stream;
+        line_stream.str("");
+        line_stream << line;
+        std::string token;
+        int token_count = 0;
+        while (line_stream >> token)
+            token_count++;
+        if (token_count != 3)
+            return INVALID_LINE_FORMAT;
+    }
+    
+
+    //  std::string value_str = trim(line.substr(pipe_pos + 1));
+    float value = static_cast<float>(std::strtof(value_str.c_str(), NULL));
+    if (value < 0 || value > 1000)
+        {
+            if (value < 0)
+                return NOT_POSITIVE_VALUE;
+            else
+                return VALUE_TOO_LARGE;
+        }
+        
+        // std::string date_str = trim(line.substr(0, pipe_pos));
+        return is_valid_date(date_str);
+  
+}
+
+input_status apply_exchange_rate(std::string line , std::map<std::string, float> exchange_rates ,bool is_header)
+{
+   std::string::size_type pipe_pos = line.find('|');
+    // std::cout<<"line: "<<line<<std::endl;
+    // std::cout<<"pipe_pos: "<<pipe_pos<<std::endl;
+    if (pipe_pos == std::string::npos || pipe_pos == 0 || pipe_pos == line.length() - 1)
+        return INVALID_LINE_FORMAT;
     if (exchange_rates.empty())
     {
         std::cout<<"no exchange rates loaded"<<std::endl;
         return INVALID_LINE_FORMAT;
     }
-    std::map<std::string, float> ::iterator it = exchange_rates.find(line.substr(0, line.find('|')));
+    std::map<std::string, float> ::iterator it;
+    
+    
+    // Validate value format (float)
+    
+    std::string value_str = trim(line.substr(pipe_pos + 1));
 
-        if (!is_valid_line_format(line))
-            return INVALID_LINE_FORMAT;
-       
-        // Validate value format (float)
 
-        size_t pipe_pos = line.find('|');
-        std::string value_str = trim(line.substr(pipe_pos + 1));
-        float value = static_cast<float>(std::strtod(value_str.c_str(), NULL));
-        if (value < 0 || value > 1000)
-            {
-                if (value < 0)
-                    return NOT_POSITIVE_VALUE;
-                else
-                    return VALUE_TOO_LARGE;
-            }
-        
-        // Validate date format (YYYY-MM-DD)
-        std::string date_str = trim(line.substr(0, pipe_pos));
+    float value = static_cast<float>(std::strtof(value_str.c_str(), NULL));
 
-         exchange_rates = load_exchange_rates("data.csv");
+
+    std::string date_str = trim(line.substr(0, pipe_pos));
+
+
+    input_status format_status = is_valid_line_format(line , is_header , value_str, date_str, pipe_pos);
+
+     if (format_status != VALID_LINE)
+            return format_status;
+        if (is_header)
+            return VALID_LINE;
+
          if (exchange_rates.empty())
-            {
-                 std::cout<<"no exchange rates loaded"<<std::endl;
-                return INVALID_LINE_FORMAT;
-         }
-         if (exchange_rates.find(date_str) != exchange_rates.end())
-            it = exchange_rates.find(date_str);
+                {
+                    std::cout<<"no exchange rates loaded"<<std::endl;
+                    return INVALID_LINE_FORMAT;
+                }
         else
         {
             it = exchange_rates.lower_bound(date_str);
-            if (it !=exchange_rates.begin())
-                it--;
+            if (it ==exchange_rates.end() || it->first != date_str)
+                if (it != exchange_rates.begin())
+                    it--;
         }
-        std::cout<<date_str<<" => "<<value<<" "<<"= "<<it->second *value<<std::endl;
-        return is_valid_date(date_str);
-       
+        std::cout<<date_str<<" => "<<value<<" "<<"= "<<it->second * value<<std::endl;
+        // return is_valid_date(date_str);
+        return VALID_LINE;
+        
+        
+
+}       
 
 
 
 
-}
 
-void is_valid_input(std::string input)
+void BitcoinExchange::calculate_exchange(std::string input)
 {
-     std::ifstream inputFile(input.c_str());
-     
+   
+    std::ifstream inputFile(input.c_str());
      int line_counter;
      //std::map<std::string, float> exchange_rates;
      if (!inputFile)
@@ -223,60 +247,35 @@ void is_valid_input(std::string input)
         std::cout<<"cant open the file"<<std::endl;
         return ;
      }
-
      line_counter = 0;
+     bool is_header = false;
      std::string line;
-     std::stringstream header_stream;
-     std::stringstream line_stream;
-     line_stream.str("");
-     header_stream << "date | value";
-     std::string header = header_stream.str();
+    std::map<std::string, float> exchange_rates;
+    exchange_rates = load_exchange_rates("data.csv");
      while (std::getline(inputFile, line))
      {
-        if (line_counter == 0 && line != header)
+        is_header = false;
+        if (line_counter == 0 )
         {
+            is_header = true;
+             line_counter++;
+        }
 
-            std::cout<<"invalid header"<<std::endl;
+        input_status exchange_rate_status = apply_exchange_rate(line, exchange_rates, is_header);
+        if (is_header && exchange_rate_status != VALID_LINE)
+        {
+            std::cout<<"Error: invalid header format"<<std::endl;
             return ;
         }
-        if (line_counter == 0)
+        if (exchange_rate_status != VALID_LINE)
         {
-             line_counter++;
-                continue;
-        }
-        
-        if (line_validation(line) != VALID_LINE)
-        {
-            status_message(line_validation(line),line);
+            status_message(exchange_rate_status,line);
             continue;
         }
         
-
         
-
-
     }
-   
-    inputFile.close();
-}
-
-void BitcoinExchange::calculate_exchange(std::string input)
-{
-    is_valid_input(input);
-    // std::cout<<"-----------------------------"<<std::endl;
-    // std::map<std::string, float> exchange_rates = load_exchange_rates("data.csv");
-    // if (exchange_rates.empty())
-    // {
-    //     std::cout<<"no exchange rates loaded"<<std::endl;
-    //     return ;
-    // }
-    //ptint map exchange rates
-    // for (std::map<std::string, double>::iterator it = exchange_rates.begin(); it != exchange_rates.end(); it++)
-    // {
-    //     std::cout<<it->first<<" : "<<it->second<<std::endl;     
-    // }
-
     
-
+    inputFile.close();
      
 }
