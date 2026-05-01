@@ -9,6 +9,7 @@
 #include <iterator>
 #include <iomanip>
 #include <sys/time.h>
+#include <set>
 
 class PmergeMe
 {
