@@ -125,33 +125,36 @@ container beginSort(container &my_container)
         ++first;
        
     }
-    container newMainChain = beginSort(larger_half);
-	container newPendingChain;
-	for(size_t i = 0; i < newMainChain.size(); i++) 															
+    container new_main_chain = beginSort(larger_half);
+	container new_pending_chain;
+	for(size_t i = 0; i < new_main_chain.size(); i++) 															
 	{
-		size_t prev_index = std::find(larger_half.begin(), larger_half.end(), newMainChain[i]) - larger_half.begin();
-		newPendingChain.push_back(smaller_half[prev_index]);
+		size_t prev_index = std::find(larger_half.begin(), larger_half.end(), new_main_chain[i]) - larger_half.begin();
+		new_pending_chain.push_back(smaller_half[prev_index]);
 	}
 	if (container_is_odd)
-		newPendingChain.push_back(lastElement); 																
-			
-	container finalMainChain = newMainChain; 
-    finalMainChain.insert(finalMainChain.begin(), newPendingChain[0]);															
-    container jacobsthalSeq = jacobsthal<container>(newPendingChain.size());
-    container insertionIndices = jacobsthal_to_index(jacobsthalSeq, newPendingChain.size());
-
-   for (size_t i = 0; i < insertionIndices.size(); i++)
     {
-        size_t index = insertionIndices[i];
+		new_pending_chain.push_back(lastElement); 
+        //container_is_odd = false;
+    }																
+			
+	container final_main_chain = new_main_chain; 
+    final_main_chain.insert(final_main_chain.begin(), new_pending_chain[0]);															
+    container jacobsthal_seq = jacobsthal<container>(new_pending_chain.size());
+    container insertion_indices = jacobsthal_to_index(jacobsthal_seq, new_pending_chain.size());
+
+   for (size_t i = 0; i < insertion_indices.size(); i++)
+    {
+        size_t index = insertion_indices[i];
         if (index == 0) 
             continue;
-
-       int value = newPendingChain[index];
-        typename container::iterator correct_pos =std::lower_bound(finalMainChain.begin(),finalMainChain.end(),value);
-        finalMainChain.insert(correct_pos, value);
+       int value = new_pending_chain[index];
+        typename container::iterator bigger_pair_pos = std::find(final_main_chain.begin(), final_main_chain.end(), new_pending_chain [index]);
+        typename container::iterator correct_pos =std::lower_bound(final_main_chain.begin(),bigger_pair_pos,value);
+        final_main_chain.insert(correct_pos, value);
 }
    
-    return finalMainChain;
+    return final_main_chain;
 }   
 
 
